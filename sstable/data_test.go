@@ -343,9 +343,10 @@ func runIterCmd(
 			si, _ := iter.(*singleLevelIteratorRowBlocks)
 			if twoLevelIter, ok := iter.(*twoLevelIteratorRowBlocks); ok {
 				si = &twoLevelIter.secondLevel
-				if twoLevelIter.topLevelIndex.Valid() {
-					fmt.Fprintf(&b, "|  topLevelIndex.Key() = %q\n", twoLevelIter.topLevelIndex.Separator())
-					bhp, err := twoLevelIter.topLevelIndex.BlockHandleWithProperties()
+				topLevelIndexIter := twoLevelIter.topLevelIndexIter()
+				if topLevelIndexIter.Valid() {
+					fmt.Fprintf(&b, "|  topLevelIndex.Key() = %q\n", topLevelIndexIter.Separator())
+					bhp, err := topLevelIndexIter.BlockHandleWithProperties()
 					if err != nil {
 						fmt.Fprintf(&b, "|  topLevelIndex entry failed to decode as BHP: %s\n", err)
 					} else {
@@ -355,7 +356,7 @@ func runIterCmd(
 				} else {
 					fmt.Fprintf(&b, "|  topLevelIndex iter invalid\n")
 				}
-				fmt.Fprintf(&b, "|  topLevelIndex.isDataInvalidated()=%t\n", twoLevelIter.topLevelIndex.IsDataInvalidated())
+				fmt.Fprintf(&b, "|  topLevelIndex.isDataInvalidated()=%t\n", topLevelIndexIter.IsDataInvalidated())
 			}
 			if si.index.Valid() {
 				fmt.Fprintf(&b, "|  index.Separator() = %q\n", si.index.Separator())
