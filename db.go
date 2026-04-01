@@ -2358,6 +2358,18 @@ func (d *DB) newMemTable(
 
 	entry := d.newFlushableEntry(mem, logNum, logSeqNum)
 	entry.releaseMemAccounting = func() {
+		// Invalidate the old skiplist arenas before recycling or freeing.
+		// This nils each Arena.buf so any stale iterator that outlived its
+		// readState will panic immediately on the nil slice instead of
+		// silently reading from the recycled/freed buffer. The buffer
+		// contents are NOT modified, preserving it for potential recycling.
+		//
+		// TODO(cockroach#166984): diagnostic scaffolding for suspected
+		// use-after-free. Remove once root cause is identified and fixed.
+		mem.skl.Arena().Invalidate()
+		mem.rangeDelSkl.Arena().Invalidate()
+		mem.rangeKeySkl.Arena().Invalidate()
+
 		// If the user leaks iterators, we may be releasing the memtable after
 		// the DB is already closed. In this case, we want to just release the
 		// memory because DB.Close won't come along to free it for us.

@@ -92,6 +92,17 @@ type memTable struct {
 func (m *memTable) free() {
 	if m != nil {
 		m.releaseAccountingReservation()
+		// Poison skiplist arenas before freeing the underlying buffer.
+		// This nils each Arena.buf so any stale iterator accessing these
+		// skiplists will panic immediately instead of silently reading
+		// freed memory. In invariant builds, also captures the free-site
+		// stack for diagnostics.
+		//
+		// TODO(cockroach#166984): diagnostic scaffolding for suspected
+		// use-after-free. Remove once root cause is identified and fixed.
+		m.skl.Arena().Poison()
+		m.rangeDelSkl.Arena().Poison()
+		m.rangeKeySkl.Arena().Poison()
 		manual.Free(manual.MemTable, m.arenaBuf)
 		m.arenaBuf = manual.Buf{}
 	}
